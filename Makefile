@@ -16,7 +16,7 @@ raspberrypi-tools:
 
 .PHONY: db-start
 db-start:
-	cockroach start --background
+	cockroach start --background --host=0.0.0.0 --insecure
 	cockroach sql -e 'CREATE DATABASE IF NOT EXISTS smart_light'
 
 .PHONY: db-stop
