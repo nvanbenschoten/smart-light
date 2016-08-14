@@ -1,9 +1,13 @@
 extern crate postgres;
 extern crate chrono;
+extern crate iron;
+extern crate router;
 
 mod db;
+mod http;
 
 fn main() {
-    db::Service::new().unwrap();
     println!("Hello, world!");
+    db::Service::new().unwrap();
+    http::start().unwrap();
 }
