@@ -9,3 +9,12 @@ build-pi: raspberrypi-tools
 
 raspberrypi-tools:
 	@git clone https://github.com/raspberrypi/tools.git raspberrypi-tools
+
+.PHONY: db-start
+db-start:
+	cockroach start --background
+	cockroach sql -e 'CREATE DATABASE IF NOT EXISTS smart_light'
+
+.PHONY: db-stop
+db-stop:
+	cockroach quit
