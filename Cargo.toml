@@ -1,0 +1,6 @@
+[package]
+name = "smart_light"
+version = "0.1.0"
+authors = ["Nathan VanBenschoten <nvanbenschoten@gmail.com>"]
+
+[dependencies]
