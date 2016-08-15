@@ -3,7 +3,7 @@ use iron::{status, Handler, Listening};
 use iron::error::HttpResult;
 use router::Router;
 use rustc_serialize::json;
-use curtains::Manager;
+use curtain::Manager;
 
 pub fn start(curtain_mgr: &Manager) -> HttpResult<Listening> {
     let mut router = Router::new();

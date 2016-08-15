@@ -21,15 +21,36 @@ impl Manager {
         }
     }
 
+    /// Returns if the blinds are open.
     pub fn is_open(&self) -> bool {
         self.inner.read().unwrap().open
     }
 
+    /// Toggles the blinds state.
     pub fn toggle(&self) -> bool {
         let mut inner = self.inner.write().unwrap();
-        inner.open = !inner.open;
-        mock_hw::move_blinds(inner.open);
-        inner.open
+        let new_state = !inner.open;
+        mock_hw::move_blinds(new_state);
+        inner.open = new_state;
+        new_state
+    }
+
+    /// Opens the blinds if they are closed.
+    pub fn open(&self) {
+        let mut inner = self.inner.write().unwrap();
+        if !inner.open {
+            mock_hw::open_blinds();
+            inner.open = true;
+        }
+    }
+
+    /// Closes the blinds if they are open.
+    pub fn close(&self) {
+        let mut inner = self.inner.write().unwrap();
+        if inner.open {
+            mock_hw::close_blinds();
+            inner.open = false;
+        }
     }
 }
 

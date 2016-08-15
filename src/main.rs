@@ -6,10 +6,10 @@ extern crate rustc_serialize;
 
 mod db;
 mod http;
-mod curtains;
+mod curtain;
 
 fn main() {
-    let curtain_mgr = curtains::Manager::new();
+    let curtain_mgr = curtain::Manager::new();
     db::Service::new(&curtain_mgr).unwrap();
     http::start(&curtain_mgr).unwrap();
 }

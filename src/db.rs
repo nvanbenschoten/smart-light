@@ -1,7 +1,7 @@
 use postgres::{Connection, SslMode};
 use postgres::error::{Error, ConnectError};
 use chrono::{DateTime, Local};
-use curtains::Manager;
+use curtain::Manager;
 
 pub struct Service {
     curtain_mgr: Manager,
