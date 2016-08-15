@@ -1,24 +1,11 @@
 use postgres::{Connection, SslMode};
 use postgres::error::{Error, ConnectError};
-use chrono::{DateTime, Local};
+use chrono::{DateTime, Local, Weekday};
 use curtain::Manager;
 
 pub struct Service {
     curtain_mgr: Manager,
     connection: Connection,
-}
-
-#[allow(dead_code)]
-#[repr(u32)]
-#[derive(Clone, Copy, Debug)]
-pub enum Weekday {
-    Sunday,
-    Monday,
-    Tuesday,
-    Wednesday,
-    Thursday,
-    Friday,
-    Saturday,
 }
 
 #[derive(Debug)]
