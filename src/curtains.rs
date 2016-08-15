@@ -1,9 +1,9 @@
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, RwLock};
 use chrono::{DateTime, Local};
 
 #[derive(Clone)]
 pub struct Manager {
-    inner: Arc<Mutex<InnerManager>>,
+    inner: Arc<RwLock<InnerManager>>,
 }
 
 struct InnerManager {
@@ -14,7 +14,7 @@ struct InnerManager {
 impl Manager {
     pub fn new() -> Manager {
         Manager {
-            inner: Arc::new(Mutex::new(InnerManager {
+            inner: Arc::new(RwLock::new(InnerManager {
                 open: false,
                 last_action: None,
             })),
@@ -22,11 +22,11 @@ impl Manager {
     }
 
     pub fn is_open(&self) -> bool {
-        self.inner.lock().unwrap().open
+        self.inner.read().unwrap().open
     }
 
     pub fn toggle(&self) -> bool {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.inner.write().unwrap();
         inner.open = !inner.open;
         mock_hw::move_blinds(inner.open);
         inner.open
