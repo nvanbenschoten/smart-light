@@ -1,8 +1,10 @@
 use postgres::{Connection, SslMode};
 use postgres::error::{Error, ConnectError};
 use chrono::{DateTime, Local};
+use curtains::Manager;
 
 pub struct Service {
+    curtain_mgr: Manager,
     connection: Connection,
 }
 
@@ -33,7 +35,7 @@ pub enum ServiceError {
 }
 
 impl Service {
-    pub fn new() -> Result<Service, ServiceError> {
+    pub fn new(curtain_mgr: &Manager) -> Result<Service, ServiceError> {
         let conn = try!(Connection::connect("postgresql://root@localhost:26257/smart_light", SslMode::None)
             .map_err(|e| ServiceError::Connect(e)));
         try!(conn.execute("CREATE TABLE IF NOT EXISTS actions (
@@ -43,6 +45,7 @@ impl Service {
             PRIMARY KEY (day, time)
         )", &[]).map_err(|e| ServiceError::Exec(e)));
         Ok(Service {
+            curtain_mgr: curtain_mgr.clone(),
             connection: conn,
         })
     }
