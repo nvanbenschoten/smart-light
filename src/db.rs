@@ -37,7 +37,11 @@ impl Service {
         })
     }
 
-    // pub fn write_action() -> Result<(), Error> {
-
-    // }
+    #[allow(dead_code)]
+    pub fn write_action(&self, action: &Action) -> Result<(), Error> {
+        self.connection
+            .execute("INSERT INTO actions (day, time, open) VALUES ($1, $2, $3)",
+                     &[&action.day.num_days_from_monday(), &action.time, &action.open])
+            .map(|_| ())
+    }
 }
