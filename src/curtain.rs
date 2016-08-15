@@ -8,6 +8,8 @@ pub struct Manager {
 
 struct InnerManager {
     open: bool,
+
+    #[allow(dead_code)]
     last_action: Option<DateTime<Local>>,
 }
 
@@ -36,6 +38,7 @@ impl Manager {
     }
 
     /// Opens the blinds if they are closed.
+    #[allow(dead_code)]
     pub fn open(&self) {
         let mut inner = self.inner.write().unwrap();
         if !inner.open {
@@ -45,6 +48,7 @@ impl Manager {
     }
 
     /// Closes the blinds if they are open.
+    #[allow(dead_code)]
     pub fn close(&self) {
         let mut inner = self.inner.write().unwrap();
         if inner.open {
