@@ -1,4 +1,5 @@
 extern crate postgres;
+extern crate num;
 extern crate chrono;
 extern crate iron;
 extern crate router;

@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Nathan VanBenschoten <nvanbenschoten@gmail.com>"]
 
 [dependencies]
+num = "0.1"
 chrono = "0.2"
 iron = "0.4"
 router = "0.2"

@@ -1,5 +1,6 @@
 use postgres::{Connection, SslMode};
 use postgres::error::{Error, ConnectError};
+use num::traits::FromPrimitive;
 use chrono::{DateTime, Local, Weekday};
 use curtain::Manager;
 
@@ -46,5 +47,19 @@ impl Service {
             .execute("INSERT INTO actions (day, time, open) VALUES ($1, $2, $3)",
                      &[&action.day.num_days_from_monday(), &action.time, &action.open])
             .map(|_| ())
+    }
+
+    #[allow(dead_code)]
+    pub fn get_actions(&self) -> Result<Vec<Action>, Error> {
+        let rows = try!(self.connection.query("SELECT day, time, open FROM actions", &[]));
+        let mut actions = Vec::new();
+        for row in &rows {
+            actions.push(Action {
+                day:  Weekday::from_i64(row.get(0)).unwrap(),
+                time: row.get(1),
+                open: row.get(2),
+            });
+        }
+        Ok(actions)
     }
 }
