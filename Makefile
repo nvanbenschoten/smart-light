@@ -14,11 +14,11 @@ clean:
 raspberrypi-tools:
 	@git clone https://github.com/raspberrypi/tools.git raspberrypi-tools
 
-.PHONY: db-start
-db-start:
+.PHONY: db-up
+db-up:
 	cockroach start --background --host=0.0.0.0 --insecure
 	cockroach sql -e 'CREATE DATABASE IF NOT EXISTS smart_light'
 
-.PHONY: db-stop
-db-stop:
+.PHONY: db-down
+db-down:
 	cockroach quit
