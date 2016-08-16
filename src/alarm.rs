@@ -14,7 +14,7 @@ pub struct Service {
 
 struct InnerService {
     timer: timer::Timer,
-    alarms: HashMap<i32, AlarmAction>,
+    alarms: HashMap<i64, AlarmAction>,
     db_srv: db::Service,
 }
 
@@ -43,14 +43,14 @@ impl Service {
         Ok(service)
     }
 
-    pub fn new_action(&mut self, weekday: Weekday, time: NaiveTime, open: bool) -> Result<(), db::ServiceError> {
+    pub fn new_action(&self, weekday: Weekday, time: NaiveTime, open: bool) -> Result<(), db::ServiceError> {
         let mut inner = self.inner.lock().unwrap();
         let action = try!(inner.db_srv.new_action(weekday, time, open));
         self.add_action_inner(&mut inner, action);
         Ok(())
     }
 
-    fn add_action(&mut self, action: db::Action) {
+    fn add_action(&self, action: db::Action) {
         let mut inner = self.inner.lock().unwrap();
         self.add_action_inner(&mut inner, action);
     }
@@ -68,7 +68,7 @@ impl Service {
     }
 
     /// Drop action removes the registered action from executing.
-    pub fn drop_action(&mut self, action_id: i32) -> Result<bool, db::ServiceError> {
+    pub fn drop_action(&self, action_id: i64) -> Result<bool, db::ServiceError> {
         let mut inner = self.inner.lock().unwrap();
         let deleted = try!(inner.db_srv.delete_action(action_id));
         if deleted {

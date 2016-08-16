@@ -10,7 +10,7 @@ pub struct Service {
 
 #[derive(Clone, Debug)]
 pub struct Action {
-    pub id:      i32,
+    pub id:      i64,
     pub open:    bool,
 
     weekday: Weekday,
@@ -23,7 +23,7 @@ impl Action {
         let mut date = now.date();
         if now.weekday() == self.weekday {
             // Day is today. Is the next occurence later today or next week?
-            if now.time() > self.time {
+            if now.time() < self.time {
                 return date.and_time(self.time).unwrap();
             } else {
                 date = date.succ();
@@ -60,8 +60,8 @@ impl Service {
     }
 
     pub fn new_action(&self, weekday: Weekday, time: NaiveTime, open: bool) -> Result<Action, ServiceError> {
-        let day_as_int = weekday.num_days_from_monday();
-        let datetime: NaiveDateTime = datetime_for_time(time);
+        let day_as_int = weekday.num_days_from_monday() as i64;
+        let datetime = datetime_for_time(time);
         let rows = try!(self.connection.query("INSERT INTO actions
                                                    (id, day, time, open)
                                                VALUES
@@ -84,7 +84,7 @@ impl Service {
         Ok(actions)
     }
 
-    pub fn delete_action(&self, id: i32) -> Result<bool, ServiceError> {
+    pub fn delete_action(&self, id: i64) -> Result<bool, ServiceError> {
         self.connection.execute("DELETE FROM actions WHERE id = $1", &[&id])
                        .map(|count| count > 0)
                        .map_err(|e| ServiceError::Exec(e))
