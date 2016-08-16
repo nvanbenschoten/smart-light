@@ -83,6 +83,12 @@ impl Service {
         }
         Ok(actions)
     }
+
+    pub fn delete_action(&self, id: i32) -> Result<bool, ServiceError> {
+        self.connection.execute("DELETE FROM actions WHERE id = $1", &[&id])
+                       .map(|count| count > 0)
+                       .map_err(|e| ServiceError::Exec(e))
+    }
 }
 
 fn row_to_action(row: Row) -> Action {

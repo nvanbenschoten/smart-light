@@ -68,8 +68,12 @@ impl Service {
     }
 
     /// Drop action removes the registered action from executing.
-    fn drop_action(&mut self, action_id: i32) -> Option<db::Action> {
+    pub fn drop_action(&mut self, action_id: i32) -> Result<bool, db::ServiceError> {
         let mut inner = self.inner.lock().unwrap();
-        inner.alarms.remove(&action_id).map(|a| a.action)
+        let deleted = try!(inner.db_srv.delete_action(action_id));
+        if deleted {
+            inner.alarms.remove(&action_id).unwrap();
+        }
+        Ok(deleted)
     }
 }
