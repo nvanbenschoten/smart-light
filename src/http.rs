@@ -3,6 +3,7 @@ use iron::{status, Handler, Listening};
 use iron::error::HttpResult;
 use router::Router;
 use rustc_serialize::json;
+
 use alarm;
 use curtain;
 
@@ -28,7 +29,7 @@ fn status(_: &mut Request, curtain_mgr: &curtain::Manager) -> IronResult<Respons
 }
 
 fn toggle(_: &mut Request, curtain_mgr: &curtain::Manager) -> IronResult<Response> {
-    let is_open = curtain_mgr.toggle();
+    let is_open = curtain_mgr.toggle_blinds();
     let status = ToggleStatus { open: is_open };
     let payload = json::encode(&status).unwrap();
     Ok(Response::with((status::Ok, payload)))

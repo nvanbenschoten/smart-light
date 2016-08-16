@@ -1,14 +1,15 @@
-extern crate postgres;
-extern crate num;
 extern crate chrono;
 extern crate iron;
+extern crate num;
+extern crate postgres;
 extern crate router;
 extern crate rustc_serialize;
+extern crate timer;
 
 mod alarm;
+mod curtain;
 mod db;
 mod http;
-mod curtain;
 
 fn main() {
     let curtain_mgr = curtain::Manager::new();

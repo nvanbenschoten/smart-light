@@ -4,11 +4,12 @@ version = "0.1.0"
 authors = ["Nathan VanBenschoten <nvanbenschoten@gmail.com>"]
 
 [dependencies]
-num = "0.1"
 chrono = "0.2"
 iron = "0.4"
+num = "0.1"
 router = "0.2"
 rustc-serialize = "0.3"
+timer = "0.1"
 
 [dependencies.postgres]
 version = "0.11"

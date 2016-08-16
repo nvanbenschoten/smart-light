@@ -28,18 +28,18 @@ impl Manager {
         self.inner.read().unwrap().open
     }
 
-    /// Toggles the blinds state.
-    pub fn toggle(&self) -> bool {
-        let mut inner = self.inner.write().unwrap();
-        let new_state = !inner.open;
-        mock_hw::move_blinds(new_state);
-        inner.open = new_state;
-        new_state
+    /// Moves the blinds to the specified position.
+    pub fn move_blinds(&self, open: bool) {
+        if open {
+            self.open_blinds();
+        } else {
+            self.close_blinds();
+        }
     }
 
     /// Opens the blinds if they are closed.
     #[allow(dead_code)]
-    pub fn open(&self) {
+    pub fn open_blinds(&self) {
         let mut inner = self.inner.write().unwrap();
         if !inner.open {
             mock_hw::open_blinds();
@@ -49,26 +49,31 @@ impl Manager {
 
     /// Closes the blinds if they are open.
     #[allow(dead_code)]
-    pub fn close(&self) {
+    pub fn close_blinds(&self) {
         let mut inner = self.inner.write().unwrap();
         if inner.open {
             mock_hw::close_blinds();
             inner.open = false;
         }
     }
+
+    /// Toggles the blinds state.
+    pub fn toggle_blinds(&self) -> bool {
+        let mut inner = self.inner.write().unwrap();
+        let new_state = !inner.open;
+        if new_state {
+            mock_hw::open_blinds();
+        } else {
+            mock_hw::close_blinds();
+        }
+        inner.open = new_state;
+        new_state
+    }
 }
 
 /// Mock out hardware interface until this can be implemented.
 /// All mock_hw methods block on hardware.
 mod mock_hw {
-    pub fn move_blinds(open: bool) {
-        if open {
-            open_blinds();
-        } else {
-            close_blinds();
-        }
-    }
-
     pub fn open_blinds() {
         println!("Open Curtains");
     }
