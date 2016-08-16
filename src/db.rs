@@ -59,18 +59,19 @@ impl Service {
     }
 
     #[allow(dead_code)]
-    pub fn write_action(&self, action: &Action) -> Result<(), Error> {
+    pub fn write_action(&self, action: &Action) -> Result<(), ServiceError> {
         let day_as_int = action.weekday.num_days_from_monday();
         let datetime: NaiveDateTime = datetime_for_time(action.time);
         self.connection
             .execute("INSERT INTO actions (id, day, time, open) VALUES ($1, $2, $3)",
                      &[&action.id, &day_as_int, &datetime, &action.open])
             .map(|_| ())
+            .map_err(|e| ServiceError::Exec(e))
     }
 
-    #[allow(dead_code)]
-    pub fn get_actions(&self) -> Result<Vec<Action>, Error> {
-        let rows = try!(self.connection.query("SELECT id, day, time, open FROM actions", &[]));
+    pub fn get_actions(&self) -> Result<Vec<Action>, ServiceError> {
+        let rows = try!(self.connection.query("SELECT id, day, time, open FROM actions", &[])
+                                       .map_err(|e| ServiceError::Exec(e)));
         let mut actions = Vec::new();
         for row in &rows {
             actions.push(Action {

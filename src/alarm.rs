@@ -28,6 +28,7 @@ struct AlarmAction {
 impl Service {
     pub fn start(curtain_mgr: &curtain::Manager) -> Result<Service, db::ServiceError> {
         let db_srv = try!(db::Service::new());
+        let actions = try!(db_srv.get_actions());
         let mut service = Service {
             inner: Arc::new(Mutex::new(InnerService{
                 timer:  timer::Timer::new(),
@@ -36,6 +37,9 @@ impl Service {
             })),
             curtain_mgr: curtain_mgr.clone(),
         };
+        for action in actions {
+            service.add_action(action);
+        }
         Ok(service)
     }
 
