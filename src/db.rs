@@ -1,20 +1,38 @@
+use chrono::{NaiveDateTime, NaiveDate, NaiveTime, DateTime, Datelike, Local, Weekday};
+use num::traits::FromPrimitive;
 use postgres::{Connection, SslMode};
 use postgres::error::{Error, ConnectError};
-use num::traits::FromPrimitive;
-use chrono::{DateTime, Local, Weekday};
 
-#[allow(dead_code)]
 pub struct Service {
     connection: Connection,
 }
 
-#[allow(dead_code)]
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Action {
-    id:   i32,
-    day:  Weekday,
-    time: DateTime<Local>,
-    open: bool,
+    pub id:      i32,
+    pub open:    bool,
+
+    weekday: Weekday,
+    time:    NaiveTime,
+}
+
+impl Action {
+    pub fn next_occurence(&self) -> DateTime<Local> {
+        let now = Local::now();
+        let mut date = now.date();
+        if now.weekday() == self.weekday {
+            // Day is today. Is the next occurence later today or next week?
+            if now.time() > self.time {
+                return date.and_time(self.time).unwrap();
+            } else {
+                date = date.succ();
+            }
+        }
+        while date.weekday() != self.weekday {
+            date = date.succ();
+        }
+        date.and_time(self.time).unwrap()
+    }
 }
 
 #[derive(Debug)]
@@ -42,9 +60,11 @@ impl Service {
 
     #[allow(dead_code)]
     pub fn write_action(&self, action: &Action) -> Result<(), Error> {
+        let day_as_int = action.weekday.num_days_from_monday();
+        let datetime: NaiveDateTime = datetime_for_time(action.time);
         self.connection
             .execute("INSERT INTO actions (id, day, time, open) VALUES ($1, $2, $3)",
-                     &[&action.id, &action.day.num_days_from_monday(), &action.time, &action.open])
+                     &[&action.id, &day_as_int, &datetime, &action.open])
             .map(|_| ())
     }
 
@@ -54,12 +74,17 @@ impl Service {
         let mut actions = Vec::new();
         for row in &rows {
             actions.push(Action {
-                id:   row.get(0),
-                day:  Weekday::from_i64(row.get(1)).unwrap(),
-                time: row.get(2),
-                open: row.get(3),
+                id:      row.get(0),
+                weekday: Weekday::from_i64(row.get(1)).unwrap(),
+                time:    row.get::<_, NaiveDateTime>(2).time(),
+                open:    row.get(3),
             });
         }
         Ok(actions)
     }
+}
+
+fn datetime_for_time(time: NaiveTime) -> NaiveDateTime {
+    let zero_date = NaiveDate::from_ymd(2000, 1, 1);
+    return NaiveDateTime::new(zero_date, time);
 }
