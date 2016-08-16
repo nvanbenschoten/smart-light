@@ -1,6 +1,6 @@
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-use chrono::Duration;
+use std::sync::{Arc, Mutex, MutexGuard};
+use chrono::{Duration, Weekday, NaiveTime};
 use timer;
 
 use db;
@@ -43,10 +43,21 @@ impl Service {
         Ok(service)
     }
 
+    pub fn new_action(&mut self, weekday: Weekday, time: NaiveTime, open: bool) -> Result<(), db::ServiceError> {
+        let mut inner = self.inner.lock().unwrap();
+        let action = try!(inner.db_srv.new_action(weekday, time, open));
+        self.add_action_inner(&mut inner, action);
+        Ok(())
+    }
+
     fn add_action(&mut self, action: db::Action) {
+        let mut inner = self.inner.lock().unwrap();
+        self.add_action_inner(&mut inner, action);
+    }
+
+    fn add_action_inner(&self, inner: &mut MutexGuard<InnerService>, action: db::Action) {
         let srv_clone = self.clone();
         let action_clone = action.clone();
-        let mut inner = self.inner.lock().unwrap();
         let guard = inner.timer.schedule(action.next_occurence(), Some(Duration::weeks(1)), move || {
             srv_clone.curtain_mgr.move_blinds(action_clone.open);
         });
