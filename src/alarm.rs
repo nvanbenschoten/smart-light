@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex};
 use chrono::{Duration, Weekday, NaiveTime};
 use timer;
 
@@ -29,7 +29,6 @@ struct AlarmAction {
 impl Service {
     pub fn start(curtain_mgr: &curtain::Manager) -> Result<Service, db::ServiceError> {
         let db_srv = try!(db::Service::new());
-        let actions = try!(db_srv.get_actions());
         let service = Service {
             inner: Arc::new(Mutex::new(InnerService{
                 timer:  timer::Timer::new(),
@@ -38,8 +37,9 @@ impl Service {
             })),
             curtain_mgr: curtain_mgr.clone(),
         };
-        for action in actions {
-            service.add_action(action);
+        {
+            let mut inner = service.inner.lock().unwrap();
+            try!(inner.load_initial_actions(&service));
         }
         Ok(service)
     }
@@ -47,38 +47,51 @@ impl Service {
     #[allow(dead_code)]
     pub fn new_action(&self, weekday: Weekday, time: NaiveTime, open: bool) -> Result<i64, db::ServiceError> {
         let mut inner = self.inner.lock().unwrap();
-        let action = try!(inner.db_srv.new_action(weekday, time, open));
-        let action_id = action.id;
-        self.add_action_inner(&mut inner, action);
-        Ok(action_id)
-    }
-
-    fn add_action(&self, action: db::Action) {
-        let mut inner = self.inner.lock().unwrap();
-        self.add_action_inner(&mut inner, action);
-    }
-
-    fn add_action_inner(&self, inner: &mut MutexGuard<InnerService>, action: db::Action) {
-        let srv_clone = self.clone();
-        let action_clone = action.clone();
-        let guard = inner.timer.schedule(action.next_occurence(), Some(Duration::weeks(1)), move || {
-            srv_clone.curtain_mgr.move_blinds(action_clone.open);
-        });
-        inner.alarms.insert(action.id, AlarmAction {
-            action: action,
-            _guard: guard,
-        });
+        inner.create_action(self, weekday, time, open)
     }
 
     /// Drop action removes the registered action from executing.
     #[allow(dead_code)]
     pub fn drop_action(&self, action_id: i64) -> Result<bool, db::ServiceError> {
         let mut inner = self.inner.lock().unwrap();
-        let deleted = try!(inner.db_srv.delete_action(action_id));
+        inner.drop_action(action_id)
+    }
+}
+
+impl InnerService {
+    fn load_initial_actions(&mut self, srv: &Service) -> Result<(), db::ServiceError> {
+        let actions = try!(self.db_srv.get_actions());
+        for action in actions {
+            self.add_action(srv, action);
+        }
+        Ok(())
+    }
+
+    fn create_action(&mut self, srv: &Service, weekday: Weekday, time: NaiveTime, open: bool) -> Result<i64, db::ServiceError> {
+        let action = try!(self.db_srv.new_action(weekday, time, open));
+        let action_id = action.id;
+        self.add_action(srv, action);
+        Ok(action_id)
+    }
+
+    fn add_action(&mut self, srv: &Service, action: db::Action) {
+        let srv_clone = srv.clone();
+        let action_clone = action.clone();
+        let guard = self.timer.schedule(action.next_occurence(), Some(Duration::weeks(1)), move || {
+            srv_clone.curtain_mgr.move_blinds(action_clone.open);
+        });
+        self.alarms.insert(action.id, AlarmAction {
+            action: action,
+            _guard: guard,
+        });
+    }
+
+    fn drop_action(&mut self, action_id: i64) -> Result<bool, db::ServiceError> {
+        let deleted = try!(self.db_srv.delete_action(action_id));
         if deleted {
             // Dropping the AlarmAction from the alarms map will cause the
             // timer::Guard to be dropped, cancelling the schedule.
-            inner.alarms.remove(&action_id).unwrap();
+            self.alarms.remove(&action_id).unwrap();
         }
         Ok(deleted)
     }
