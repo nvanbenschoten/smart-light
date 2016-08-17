@@ -1,4 +1,4 @@
-use chrono::{NaiveDateTime, NaiveDate, NaiveTime, DateTime, Datelike, Local, Weekday};
+use chrono::*;
 use num::traits::FromPrimitive;
 use postgres::{Connection, SslMode};
 use postgres::error::{Error, ConnectError};
@@ -19,11 +19,14 @@ pub struct Action {
 
 impl Action {
     pub fn next_occurence(&self) -> DateTime<Local> {
-        let now = Local::now();
-        let mut date = now.date();
-        if now.weekday() == self.weekday {
+        self.next_occurence_from_datetime(Local::now())
+    }
+
+    fn next_occurence_from_datetime<Tz: TimeZone>(&self, datetime: DateTime<Tz>) -> DateTime<Tz> {
+        let mut date = datetime.date();
+        if datetime.weekday() == self.weekday {
             // Day is today. Is the next occurence later today or next week?
-            if now.time() < self.time {
+            if datetime.time() < self.time {
                 return date.and_time(self.time).unwrap();
             } else {
                 date = date.succ();
@@ -103,4 +106,127 @@ fn row_to_action(row: Row) -> Action {
 fn datetime_for_time(time: NaiveTime) -> NaiveDateTime {
     let zero_date = NaiveDate::from_ymd(2000, 1, 1);
     NaiveDateTime::new(zero_date, time)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::*;
+
+    #[test]
+    fn test_next_occurence_from_datetime() {
+        struct NextOccurenceTest {
+            alarm_weekday: Weekday,
+            alarm_time:    NaiveTime,
+            cur_time:      DateTime<UTC>,
+            exp_time:      DateTime<UTC>,
+        }
+        let tests = vec![
+            // Later on in the same week.
+            NextOccurenceTest {
+                alarm_weekday: Weekday::Wed,
+                alarm_time:    NaiveTime::from_hms(19, 30, 9),
+                cur_time:      DateTime::from_utc(
+                    NaiveDateTime::new(
+                        NaiveDate::from_ymd(2016, 8, 15) /* Mon */,
+                        NaiveTime::from_hms(12, 0, 0)
+                    ),
+                    UTC,
+                ),
+                exp_time:      DateTime::from_utc(
+                    NaiveDateTime::new(
+                        NaiveDate::from_ymd(2016, 8, 17) /* Wed */,
+                        NaiveTime::from_hms(19, 30, 9)
+                    ),
+                    UTC,
+                ),
+            },
+            // In the following week.
+            NextOccurenceTest {
+                alarm_weekday: Weekday::Mon,
+                alarm_time:    NaiveTime::from_hms(9, 30, 9),
+                cur_time:      DateTime::from_utc(
+                    NaiveDateTime::new(
+                        NaiveDate::from_ymd(2016, 8, 17) /* Wed */,
+                        NaiveTime::from_hms(12, 0, 0)
+                    ),
+                    UTC,
+                ),
+                exp_time:      DateTime::from_utc(
+                    NaiveDateTime::new(
+                        NaiveDate::from_ymd(2016, 8, 22) /* Mon */,
+                        NaiveTime::from_hms(9, 30, 9)
+                    ),
+                    UTC,
+                ),
+            },
+            // Same day and later. Should be the same day.
+            NextOccurenceTest {
+                alarm_weekday: Weekday::Wed,
+                alarm_time:    NaiveTime::from_hms(19, 30, 9),
+                cur_time:      DateTime::from_utc(
+                    NaiveDateTime::new(
+                        NaiveDate::from_ymd(2016, 8, 17) /* Wed */,
+                        NaiveTime::from_hms(12, 0, 0)
+                    ),
+                    UTC,
+                ),
+                exp_time:      DateTime::from_utc(
+                    NaiveDateTime::new(
+                        NaiveDate::from_ymd(2016, 8, 17) /* Wed */,
+                        NaiveTime::from_hms(19, 30, 9)
+                    ),
+                    UTC,
+                ),
+            },
+            // Same day but earlier. Should go almost an entire week.
+            NextOccurenceTest {
+                alarm_weekday: Weekday::Wed,
+                alarm_time:    NaiveTime::from_hms(9, 30, 9),
+                cur_time:      DateTime::from_utc(
+                    NaiveDateTime::new(
+                        NaiveDate::from_ymd(2016, 8, 17) /* Wed */,
+                        NaiveTime::from_hms(12, 0, 0)
+                    ),
+                    UTC,
+                ),
+                exp_time:      DateTime::from_utc(
+                    NaiveDateTime::new(
+                        NaiveDate::from_ymd(2016, 8, 24) /* Wed */,
+                        NaiveTime::from_hms(9, 30, 9)
+                    ),
+                    UTC,
+                ),
+            },
+            // Same day, same time. Should go a week.
+            NextOccurenceTest {
+                alarm_weekday: Weekday::Wed,
+                alarm_time:    NaiveTime::from_hms(12, 0, 0),
+                cur_time:      DateTime::from_utc(
+                    NaiveDateTime::new(
+                        NaiveDate::from_ymd(2016, 8, 17) /* Wed */,
+                        NaiveTime::from_hms(12, 0, 0)
+                    ),
+                    UTC,
+                ),
+                exp_time:      DateTime::from_utc(
+                    NaiveDateTime::new(
+                        NaiveDate::from_ymd(2016, 8, 24) /* Wed */,
+                        NaiveTime::from_hms(12, 0, 0)
+                    ),
+                    UTC,
+                ),
+            },
+        ];
+
+        for t in tests {
+            let action = Action {
+                id:      0,
+                open:    false,
+                weekday: t.alarm_weekday,
+                time:    t.alarm_time,
+            };
+            assert_eq!(t.exp_time, action.next_occurence_from_datetime(t.cur_time));
+        }
+    }
 }

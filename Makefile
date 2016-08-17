@@ -7,6 +7,10 @@ build-pi: raspberrypi-tools
 	@rustup target add arm-unknown-linux-gnueabihf
 	@cargo build --target=arm-unknown-linux-gnueabihf
 
+.PHONY: test
+test:
+	@cargo test
+
 .PHONY: clean
 clean:
 	@cargo clean

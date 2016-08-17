@@ -21,6 +21,7 @@ struct InnerService {
 /// Holds an Action that is scheduled to be run in the future.
 /// Dropping this struct will cancel the schedule.
 struct AlarmAction {
+    #[allow(dead_code)]
     action: db::Action,
     _expire: timer::Guard,
 }
@@ -29,7 +30,7 @@ impl Service {
     pub fn start(curtain_mgr: &curtain::Manager) -> Result<Service, db::ServiceError> {
         let db_srv = try!(db::Service::new());
         let actions = try!(db_srv.get_actions());
-        let mut service = Service {
+        let service = Service {
             inner: Arc::new(Mutex::new(InnerService{
                 timer:  timer::Timer::new(),
                 alarms: HashMap::new(),
@@ -43,6 +44,7 @@ impl Service {
         Ok(service)
     }
 
+    #[allow(dead_code)]
     pub fn new_action(&self, weekday: Weekday, time: NaiveTime, open: bool) -> Result<(), db::ServiceError> {
         let mut inner = self.inner.lock().unwrap();
         let action = try!(inner.db_srv.new_action(weekday, time, open));
@@ -68,6 +70,7 @@ impl Service {
     }
 
     /// Drop action removes the registered action from executing.
+    #[allow(dead_code)]
     pub fn drop_action(&self, action_id: i64) -> Result<bool, db::ServiceError> {
         let mut inner = self.inner.lock().unwrap();
         let deleted = try!(inner.db_srv.delete_action(action_id));

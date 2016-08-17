@@ -7,6 +7,7 @@ use rustc_serialize::json;
 use alarm;
 use curtain;
 
+#[allow(unused_variables)]
 pub fn start(curtain_mgr: &curtain::Manager, alarm_srv: &alarm::Service) -> HttpResult<Listening> {
     let mut router = Router::new();
 
