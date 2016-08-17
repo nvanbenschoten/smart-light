@@ -14,13 +14,13 @@ pub struct Service {
 
 struct InnerService {
     timer: timer::Timer,
-    alarms: HashMap<i64, AlarmAction>,
+    alarms: HashMap<i64, ScheduledAction>,
     db_srv: db::Service,
 }
 
 /// Holds an Action that is scheduled to be run in the future.
 /// Dropping this struct will cancel the schedule.
-struct AlarmAction {
+struct ScheduledAction {
     #[allow(dead_code)]
     action: db::Action,
     _guard: timer::Guard,
@@ -80,7 +80,7 @@ impl InnerService {
         let guard = self.timer.schedule(action.next_occurence(), Some(Duration::weeks(1)), move || {
             srv_clone.curtain_mgr.move_blinds(action_clone.open);
         });
-        self.alarms.insert(action.id, AlarmAction {
+        self.alarms.insert(action.id, ScheduledAction {
             action: action,
             _guard: guard,
         });
@@ -89,7 +89,7 @@ impl InnerService {
     fn drop_action(&mut self, action_id: i64) -> Result<bool, db::ServiceError> {
         let deleted = try!(self.db_srv.delete_action(action_id));
         if deleted {
-            // Dropping the AlarmAction from the alarms map will cause the
+            // Dropping the ScheduledAction from the alarms map will cause the
             // timer::Guard to be dropped, cancelling the schedule.
             self.alarms.remove(&action_id).unwrap();
         }
