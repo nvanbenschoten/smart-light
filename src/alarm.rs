@@ -23,7 +23,7 @@ struct InnerService {
 struct AlarmAction {
     #[allow(dead_code)]
     action: db::Action,
-    _expire: timer::Guard,
+    _guard: timer::Guard,
 }
 
 impl Service {
@@ -45,11 +45,12 @@ impl Service {
     }
 
     #[allow(dead_code)]
-    pub fn new_action(&self, weekday: Weekday, time: NaiveTime, open: bool) -> Result<(), db::ServiceError> {
+    pub fn new_action(&self, weekday: Weekday, time: NaiveTime, open: bool) -> Result<i64, db::ServiceError> {
         let mut inner = self.inner.lock().unwrap();
         let action = try!(inner.db_srv.new_action(weekday, time, open));
+        let action_id = action.id;
         self.add_action_inner(&mut inner, action);
-        Ok(())
+        Ok(action_id)
     }
 
     fn add_action(&self, action: db::Action) {
@@ -65,7 +66,7 @@ impl Service {
         });
         inner.alarms.insert(action.id, AlarmAction {
             action: action,
-            _expire: guard,
+            _guard: guard,
         });
     }
 
@@ -75,6 +76,8 @@ impl Service {
         let mut inner = self.inner.lock().unwrap();
         let deleted = try!(inner.db_srv.delete_action(action_id));
         if deleted {
+            // Dropping the AlarmAction from the alarms map will cause the
+            // timer::Guard to be dropped, cancelling the schedule.
             inner.alarms.remove(&action_id).unwrap();
         }
         Ok(deleted)
